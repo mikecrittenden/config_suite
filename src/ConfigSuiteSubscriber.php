@@ -39,7 +39,7 @@ class ConfigSuiteSubscriber extends SystemConfigSubscriber {
   }
 
   public function onConfigSave(ConfigCrudEvent $event) {
-
+    
     // Retrieve a list of differences between the active and target configuration (if any).
     $sync_storage = \Drupal::service('config.storage.sync');
     $active_storage = \Drupal::service('config.storage');
@@ -66,8 +66,6 @@ class ConfigSuiteSubscriber extends SystemConfigSubscriber {
     }
 
     // Export configuration collections.
-    // Do we really need this?
-    /*
     foreach ($active_storage->getAllCollectionNames() as $collection) {
       $active_collection = $active_storage->createCollection($collection);
       $sync_collection = $sync_storage->createCollection($collection);
@@ -75,7 +73,6 @@ class ConfigSuiteSubscriber extends SystemConfigSubscriber {
         $sync_collection->write($name, $active_collection->read($name));
       }
     }
-    */
   }
 
   public function onConfigRead() {
