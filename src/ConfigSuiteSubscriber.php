@@ -6,18 +6,6 @@ use Drupal\system\SystemConfigSubscriber;
 use Drupal\Core\Config\ConfigImporterEvent;
 use Drupal\Core\Config\ConfigCrudEvent;
 
-use Drupal\config\StorageReplaceDataWrapper;
-use Drush\Log\LogLevel;
-use Drupal\Core\Config\StorageComparer;
-use Drupal\Core\Config\ConfigImporter;
-use Drupal\Core\Config\ConfigException;
-use Drupal\Core\Config\FileStorage;
-use Drupal\Component\Utility\NestedArray;
-use Drush\Config\StorageWrapper;
-use Drush\Config\CoreExtensionFilter;
-use Symfony\Component\Yaml\Parser;
-
-
 /**
  * System Config subscriber.
  */
@@ -39,6 +27,7 @@ class ConfigSuiteSubscriber extends SystemConfigSubscriber {
   }
 
   public function onConfigSave(ConfigCrudEvent $event) {
+
     // Get our storage settings.
     $sync_storage = \Drupal::service('config.storage.sync');
     $active_storage = \Drupal::service('config.storage');

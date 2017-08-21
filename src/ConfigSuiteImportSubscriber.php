@@ -2,20 +2,12 @@
 
 namespace Drupal\config_suite;
 
-// This is the interface we are going to implement.
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-// This class contains the event we want to subscribe to.
 use Symfony\Component\HttpKernel\KernelEvents;
-// Our event listener method will receive one of these.
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
-// We'll use this to perform a redirect if necessary.
-use Symfony\Component\HttpFoundation\RedirectResponse;
-
-use \Drupal\Core\Config\StorageComparerInterface;
 use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Config\ConfigImporter;
-
-
+use Drupal\Core\Cache\ChainedFastBackend;
 
 /**
  * Subscribe to KernelEvents::REQUEST events and redirect if site is currently
@@ -38,8 +30,11 @@ class ConfigSuiteImportSubscriber implements EventSubscriberInterface {
    * @param GetResponseEvent $event
    */
   public function checkForRedirection(GetResponseEvent $event) {
+    $user = \Drupal::currentUser()->getRoles();
+    if(!in_array("administrator", $user)) {
+      return;
+    }
 
-    // Set up the ConfigImporter object for testing.
     $storage_comparer = new StorageComparer(
       \Drupal::service('config.storage.sync'),
       \Drupal::service('config.storage'),
@@ -59,7 +54,13 @@ class ConfigSuiteImportSubscriber implements EventSubscriberInterface {
     );
     if (!$config_importer->alreadyImporting()) {
       try {
-        if ($storage_comparer->createChangelist()->hasChanges()) {
+        $last_save_time = \Drupal::service('cache.backend.database')
+          ->get('config')
+          ->get(ChainedFastBackend::LAST_WRITE_TIMESTAMP_PREFIX . 'cache_config')
+          ->data;
+
+        $last_sync_update = $this->checkModifiedTime();
+        if ($last_sync_update > $last_save_time ) {
           $sync_steps = $config_importer->initialize();
           foreach ($sync_steps as $step) {
             $context = array();
@@ -69,16 +70,18 @@ class ConfigSuiteImportSubscriber implements EventSubscriberInterface {
           }
         }
       } catch (ConfigException $e) {
-        // Return a negative result for UI purposes. We do not differentiate
-        // between an actual synchronization error and a failed lock, because
-        // concurrent synchronizations are an edge-case happening only when
-        // multiple developers or site builders attempt to do it without
-        // coordinating.
         $message = 'The import failed due for the following reasons:' . "\n";
         $message .= implode("\n", $config_importer->getErrors());
 
         watchdog_exception('config_import', $e);
       }
     }
+  }
+
+  protected function checkModifiedTime() {
+    $destination_dir = config_get_config_directory(CONFIG_SYNC_DIRECTORY);
+    $stat = stat($destination_dir);
+
+    return $stat['mtime'];
   }
 }
