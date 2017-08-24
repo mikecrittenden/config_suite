@@ -35,6 +35,11 @@ class ConfigSuiteImportSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    $config = \Drupal::config('config_suite.settings');
+    if (!$config->get('automatic_import')) {
+      return;
+    }
+
     $storage_comparer = new StorageComparer(
       \Drupal::service('config.storage.sync'),
       \Drupal::service('config.storage'),

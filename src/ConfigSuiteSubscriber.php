@@ -28,6 +28,11 @@ class ConfigSuiteSubscriber extends SystemConfigSubscriber {
 
   public function onConfigSave(ConfigCrudEvent $event) {
 
+    $config = \Drupal::config('config_suite.settings');
+    if (!$config->get('automatic_export')) {
+      return;
+    }
+
     // Get our storage settings.
     $sync_storage = \Drupal::service('config.storage.sync');
     $active_storage = \Drupal::service('config.storage');
