@@ -40,13 +40,34 @@ class ConfigSuiteSubscriber extends SystemConfigSubscriber {
     // Find out which config was saved.
     $config = $event->getConfig();
     $changed_config = $config->getName();
-    $sync_storage->write($changed_config, $active_storage->read($changed_config));
 
-    // Export configuration collections.
-    foreach ($active_storage->getAllCollectionNames() as $collection) {
-      $active_collection = $active_storage->createCollection($collection);
-      $sync_collection = $sync_storage->createCollection($collection);
-      $sync_collection->write($changed_config, $active_collection->read($changed_config));
+    //If the config is a config split change, we must rebuild the full config.
+    if (substr($changed_config, 0, 13) !== 'config_split.') {
+      $sync_storage->write($changed_config, $active_storage->read($changed_config));
+
+      // Export configuration collections.
+      foreach ($active_storage->getAllCollectionNames() as $collection) {
+        $active_collection = $active_storage->createCollection($collection);
+        $sync_collection = $sync_storage->createCollection($collection);
+        $sync_collection->write($changed_config, $active_collection->read($changed_config));
+      }
+    }
+    else {
+      $sync_storage->deleteAll();
+
+      // Write all .yml files.
+      foreach ($active_storage->listAll() as $name) {
+        $sync_storage->write($name, $active_storage->read($name));
+      }
+
+      // Export configuration collections.
+      foreach ($active_storage->getAllCollectionNames() as $collection) {
+        $active_collection = $active_storage->createCollection($collection);
+        $sync_collection = $sync_storage->createCollection($collection);
+        foreach ($active_collection->listAll() as $name) {
+          $sync_collection->write($name, $active_collection->read($name));
+        }
+      }
     }
   }
 }
